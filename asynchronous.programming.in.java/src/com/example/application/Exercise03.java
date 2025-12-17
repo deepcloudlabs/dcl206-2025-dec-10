@@ -18,12 +18,12 @@ public class Exercise03 {
 				new TradeEvent("orcl", 104,200)
 			);
 		var observable = new TradeObservable();
-		Observer slowObserver = (o,event) -> {
+		Observer slowObserver = (_,event) -> {
 			System.err.println("SlowObserver has received the event: %s".formatted(event));
 			try {TimeUnit.SECONDS.sleep(5);}catch(Exception e) {}
 			System.err.println("SlowObserver has finally processed the event: %s".formatted(event));
 		} ;
-		Observer fastObserver = (o,event) -> {
+		Observer fastObserver = (_,event) -> {
 			System.err.println("FastObserver has received the event: %s".formatted(event));
 			System.err.println("FastObserver has finally processed the event: %s".formatted(event));
 		} ;
@@ -35,6 +35,7 @@ public class Exercise03 {
 
 }
 
+@SuppressWarnings("deprecation")
 class TradeObservable extends Observable {
 
 	@Override

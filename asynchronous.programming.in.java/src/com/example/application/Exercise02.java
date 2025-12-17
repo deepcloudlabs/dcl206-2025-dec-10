@@ -7,13 +7,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Gatherers;
 
 public class Exercise02 {
-	private static AtomicInteger counter = new AtomicInteger(0);
 	private static Pattern PRICE_PATTERN = Pattern.compile("\"price\"\\s*:\\s*\"([+-]?\\d+(?:\\.\\d+)?)\"");
 	
 	public static void main(String[] args) throws IOException, InterruptedException {

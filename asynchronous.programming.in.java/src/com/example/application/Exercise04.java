@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Exercise04 {
 
-	@SuppressWarnings("deprecation")
 	public static void main(String[] args) {
 		System.err.println("Application is just started.");
 		var tradeEvents = List.of(
@@ -26,6 +25,7 @@ public class Exercise04 {
 		tradeEvents.forEach(publisher::submit);
 		System.err.println("Application is just completed.");
 		try {TimeUnit.SECONDS.sleep(30);}catch(Exception e) {}
+		publisher.close();
 	}
 
 }

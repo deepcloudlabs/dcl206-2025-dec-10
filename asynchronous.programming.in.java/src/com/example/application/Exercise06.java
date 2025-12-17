@@ -6,8 +6,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
@@ -22,16 +24,17 @@ public class Exercise06 {
 	private static Pattern PRICE_PATTERN = Pattern.compile("\"price\"\\s*:\\s*\"([+-]?\\d+(?:\\.\\d+)?)\"");
 	private static final String TICKER_URL= "https://api.binance.com/api/v3/ticker/price?symbol=%s";
 	private static final String ALL_TICKERS_URL= "https://api.binance.com/api/v3/ticker/price";
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		try (var threadPool = Executors.newVirtualThreadPerTaskExecutor()) {
+			System.out.println("Application is just started!");
 			HttpClient client = HttpClient.newBuilder().executor(threadPool).build();
 			SubmissionPublisher<String> symbolPublisher = new SubmissionPublisher<>();
 			var fetchTickers = new MapAsyncProcessor<String, String>(
-					threadPool, 1024, 10, symbol -> fetchTickerAsync(client,symbol)	
+					threadPool, 1024*1024, 10, symbol -> fetchTickerAsync(client,symbol)	
 			);
 			
-			var window = new WindowFixedProcessor<String>(exec,128,10);
-			var summarize = new SummarizePricesProcessor(exec,128);
+			var window = new WindowFixedProcessor<String>(threadPool,128,50);
+			var summarize = new SummarizePricesProcessor(threadPool,128);
 			var sink = new PrintingSubscriber();
 			
 			// wiring Reactive Stream/Pipeline
@@ -49,6 +52,7 @@ public class Exercise06 {
 			        	  return null;
 			          });
 			sink.await();
+			System.out.println("Application is just completed!");
 		}
 
 	}
@@ -77,16 +81,125 @@ public class Exercise06 {
 		while (matcher.find()) {
 			symbols.add(matcher.group(1));
 		}
-		symbols.sort(String::compareTo);    
 		return symbols;
     }
     
-    public static double getPrice(String jsonObject) {
+    public static double parsePrice(String jsonObject) {
 		var matcher = PRICE_PATTERN.matcher(jsonObject);
 		if (!matcher.find())
 			throw new IllegalArgumentException("price not found");
 		return Double.parseDouble(matcher.group(1));
 	}
+    
+    static final class SummarizePricesProcessor extends SubmissionPublisher<DoubleSummaryStatistics> implements Flow.Processor<List<String>, DoubleSummaryStatistics> {
+    	private Subscription upstream;
+    	
+		public SummarizePricesProcessor(Executor executor,int publisherBuffer) {
+			super(executor, publisherBuffer);
+		}
+
+		@Override
+		public void onSubscribe(Subscription subscription) {
+			this.upstream = subscription;
+			subscription.request(Long.MAX_VALUE);
+		}
+
+		@Override
+		public void onNext(List<String> tickers) {
+			var stats = new DoubleSummaryStatistics();
+			for (var ticker : tickers) {
+				stats.accept(parsePrice(ticker));
+			}
+			this.submit(stats);
+		}
+
+		@Override
+		public void onError(Throwable throwable) {
+			upstream.cancel();
+			this.closeExceptionally(throwable);
+		}
+
+		@Override
+		public void onComplete() {
+			this.close();
+		}
+    	
+    }
+    
+    static final class PrintingSubscriber implements Flow.Subscriber<DoubleSummaryStatistics> {
+    	private Subscription subscription;
+    	private CountDownLatch done = new CountDownLatch(1);
+    	
+		@Override
+		public void onSubscribe(Subscription subscription) {
+			this.subscription= subscription;
+			this.subscription.request(Long.MAX_VALUE);	
+		}
+
+		@Override
+		public void onNext(DoubleSummaryStatistics item) {
+			System.out.println(item);
+		}
+
+		@Override
+		public void onError(Throwable throwable) {
+			done.countDown();
+		}
+
+		@Override
+		public void onComplete() {
+			done.countDown();
+		}
+		
+		public void await() throws InterruptedException {
+			done.await();
+		}
+    	
+    }
+	static final class WindowFixedProcessor<T> extends SubmissionPublisher<List<T>> implements Flow.Processor<T, List<T>> {
+    	private final int windowSize;
+    	private final List<T> buffer;
+    	private Flow.Subscription upstream;
+    	
+    	
+		public WindowFixedProcessor(Executor executor,int publisherBuffer,int windowSize) {
+			super(executor,publisherBuffer);
+			this.windowSize = windowSize;
+			this.buffer = new ArrayList<>(windowSize);
+		}
+
+		@Override
+		public void onSubscribe(Subscription subscription) {
+			this.upstream = subscription;
+			subscription.request(Long.MAX_VALUE);
+		}
+
+		@Override
+		public void onNext(T item) {
+			buffer.add(item);
+			if (buffer.size() == windowSize) {
+				this.submit(List.copyOf(buffer));
+				buffer.clear();
+			}
+			
+		}
+
+		@Override
+		public void onError(Throwable throwable) {
+			upstream.cancel();
+			this.closeExceptionally(throwable);
+		}
+
+		@Override
+		public void onComplete() {
+			if (!buffer.isEmpty()) {
+				this.submit(List.copyOf(buffer));
+				buffer.clear();
+			}
+			this.close();
+		}
+    	
+    } 
     
 	static final class MapAsyncProcessor<IN, OUT> extends SubmissionPublisher<OUT> implements Flow.Processor<IN, OUT> {
 		private Subscription upstream;
@@ -119,8 +232,10 @@ public class Exercise06 {
 			}
 			CompletableFuture<OUT> futureResponse;
 			futureResponse = mapperFunction.apply(item);
-			futureResponse.whenComplete((out,err)->{
+			futureResponse.whenComplete((out,_)->{
 				this.submit(out);
+				permits.release();
+				upstream.request(1);
 			});
 		}
 
