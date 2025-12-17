@@ -2,6 +2,7 @@ package com.example.se7;
 
 public class Exercise01 {
 
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		int x = 42;  // base: 10
 		int y = 042; // base: 8
