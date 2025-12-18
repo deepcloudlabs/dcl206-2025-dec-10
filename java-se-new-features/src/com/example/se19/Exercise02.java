@@ -21,6 +21,7 @@ public class Exercise02 {
 		// Thread.ofPlatform();
 	    Thread.ofVirtual(); // 1k
 	    //1024*1024 -> Thread.ofVirtual() -> 1024 * 1024 * 1k = 1gb -> virtual memory
+	    //Heap + Structured Concurrency 
 	    try (var threadPool = Executors.newVirtualThreadPerTaskExecutor()){
 	    	for (int i=0;i<10_000;++i) {
 	    		int threadId = i;
