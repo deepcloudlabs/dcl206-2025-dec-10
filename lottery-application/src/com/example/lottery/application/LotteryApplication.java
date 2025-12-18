@@ -1,16 +1,20 @@
 package com.example.lottery.application;
 
+/*
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.ServiceLoader;
+*/
 
 import com.example.lottery.service.business.StandardLotteryService;
-import com.example.random.service.QualityLevel;
-import com.example.random.service.RandomNumberService;
-import com.example.random.service.ServiceQuality;
+// import com.example.random.service.QualityLevel;
+//import com.example.random.service.RandomNumberService;
+//import com.example.random.service.ServiceQuality;
+import module com.example.random; // java 23
+import module java.base;
 
 public class LotteryApplication {
 
