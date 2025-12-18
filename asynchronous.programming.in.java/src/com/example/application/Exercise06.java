@@ -92,7 +92,7 @@ public class Exercise06 {
 	}
     
     static final class SummarizePricesProcessor extends SubmissionPublisher<DoubleSummaryStatistics> implements Flow.Processor<List<String>, DoubleSummaryStatistics> {
-    	private Subscription upstream;
+    	private volatile Subscription upstream;
     	
 		public SummarizePricesProcessor(Executor executor,int publisherBuffer) {
 			super(executor, publisherBuffer);
@@ -127,7 +127,7 @@ public class Exercise06 {
     }
     
     static final class PrintingSubscriber implements Flow.Subscriber<DoubleSummaryStatistics> {
-    	private Subscription subscription;
+    	private volatile Subscription subscription;
     	private CountDownLatch done = new CountDownLatch(1);
     	
 		@Override
