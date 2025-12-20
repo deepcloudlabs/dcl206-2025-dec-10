@@ -13,6 +13,7 @@ record Point(int x,int y) {
 	
 }
 
+@SuppressWarnings("unused")
 class A {
 	private Point p;
 	class B { // inner class

@@ -1,6 +1,5 @@
 package com.example.se17;
 
-import java.awt.DefaultFocusTraversalPolicy;
 import java.util.List;
 
 public class Exercise02 {

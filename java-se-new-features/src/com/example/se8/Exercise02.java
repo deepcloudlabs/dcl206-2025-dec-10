@@ -8,6 +8,7 @@ import java.util.function.ToLongFunction;
 import java.util.stream.IntStream;
 
 public class Exercise02 {
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		List<Integer> numbers = List.of(4,8,15,16,23,42);
 		// Predicate<Integer> ifOdd = t -> t%2 == 1;

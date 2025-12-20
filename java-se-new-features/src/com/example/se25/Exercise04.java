@@ -21,6 +21,7 @@ class Circle {
 		
 }
 
+@SuppressWarnings("unused")
 class ColorfulCircle extends Circle {
 	private String color;
 

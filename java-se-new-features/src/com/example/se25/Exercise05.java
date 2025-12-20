@@ -2,6 +2,7 @@ package com.example.se25;
 
 public class Exercise05 {
 
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		System.out.println(fun(42));
 		System.out.println(fun(-42));
